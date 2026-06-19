@@ -1,6 +1,27 @@
 #include "PluginManager.h"
 #include "scheduler.h"
 
+namespace
+{
+constexpr unsigned long PLUGIN_ID_DISPLAY_MS = 2000;
+constexpr unsigned long PLUGIN_ID_BLANK_REFRESH_MS = 75;
+constexpr unsigned long PLUGIN_ID_WAIT_STEP_MS = 10;
+
+void waitForMillis(unsigned long duration)
+{
+  unsigned long startTime = millis();
+  while (millis() - startTime < duration)
+  {
+    yield();
+#ifdef ESP32
+    vTaskDelay(pdMS_TO_TICKS(PLUGIN_ID_WAIT_STEP_MS));
+#else
+    delay(PLUGIN_ID_WAIT_STEP_MS);
+#endif
+  }
+}
+} // namespace
+
 Plugin::Plugin() : id(-1)
 {
 }
@@ -67,16 +88,10 @@ void PluginManager::renderPluginId(int pluginId)
     Screen.drawNumbers(6, 6, digits, MAX_BRIGHTNESS);
   }
 
-  unsigned long startTime = millis();
-  while (millis() - startTime < 800)
-  {
-    yield();
-#ifdef ESP32
-    vTaskDelay(pdMS_TO_TICKS(10));
-#else
-    delay(10);
-#endif
-  }
+  waitForMillis(PLUGIN_ID_DISPLAY_MS);
+
+  Screen.clear();
+  waitForMillis(PLUGIN_ID_BLANK_REFRESH_MS);
 }
 
 void PluginManager::activatePersistedPlugin()
