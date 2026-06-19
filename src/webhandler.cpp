@@ -318,6 +318,7 @@ void handleSetConfigBody(AsyncWebServerRequest *request,
       Serial.print("[WebHandler] Auto-Start Schedule: ");
       Serial.println(config.getAutoStartSchedule() ? "enabled" : "disabled");
       Serial.println("[WebHandler] ============================================");
+      config.applyTimeConfig();
       sendJsonSuccess(request, "Configuration saved successfully");
     }
     else
@@ -353,6 +354,7 @@ void handleResetConfig(AsyncWebServerRequest *request)
     Serial.print("[WebHandler] Auto-Start Schedule: ");
     Serial.println(config.getAutoStartSchedule() ? "enabled" : "disabled");
     Serial.println("[WebHandler] ============================================");
+    config.applyTimeConfig();
     sendJsonSuccess(request, "Configuration reset to defaults");
   } catch (...) {
     Serial.println("[WebHandler] ERROR: Exception in handleResetConfig");

@@ -1,6 +1,6 @@
 # Plan: Splashscreens, Fork, Plugin- und Remote-Konfiguration
 
-Stand: 2026-06-17
+Stand: 2026-06-19
 
 ## Ausgangslage im Projekt
 
@@ -73,7 +73,69 @@ Dieser Callback signalisiert, dass der Config-Portal-Webserver gestartet wurde. 
 - `wifiManager.autoConnect(...)` ist blockierend. Das Icon muss vor oder im WiFiManager-Callback gesetzt werden.
 - Wenn kein WLAN vorhanden ist, kann das Portal bis zu `setConfigPortalTimeout(180)` Sekunden aktiv sein. Das Icon bleibt in dieser Zeit stabil stehen.
 
-## 3. Fork des GitHub-Projekts
+## 3. Plugin-Nummer nur temporaer anzeigen
+
+### Wunsch
+
+Beim Auswaehlen eines Plugins soll die Plugin-Nummer fuer 2 Sekunden angezeigt werden. Danach soll das Panel einmal komplett blank refresht werden. Erst danach soll der Content des gewaehlten Plugins sichtbar werden.
+
+### Recherche / Ist-Zustand
+
+Die Anzeige der Nummer passiert aktuell in `PluginManager::renderPluginId(int pluginId)`:
+
+```cpp
+Screen.clear();
+Screen.drawNumbers(...);
+while (millis() - startTime < 800) { ... }
+```
+
+Beim Wechsel setzt `PluginManager::setActivePlugin(...)` bereits `currentStatus = LOADING`, ruft `renderPluginId(...)` auf, setzt danach `currentStatus = NONE` und startet `activePlugin->setup()`.
+
+Das erklaert das Stoerverhalten: `Screen.clear()` loescht nur den Renderbuffer vor dem Zeichnen der Nummer. Nach der Nummer wird der Buffer nicht erneut geleert. Wenn das neue Plugin in `setup()` oder den ersten `loop()`-Durchlaeufen nicht alle 256 Pixel ueberschreibt, bleiben die gesetzten Pixel der Nummer sichtbar, bis ein Plugin sie irgendwann explizit ueberschreibt.
+
+### Bewertung
+
+Sehr gut machbar und architektonisch an der richtigen Stelle loesbar. Die zentrale Stelle ist `PluginManager::renderPluginId(...)`, nicht jedes einzelne Plugin. Dadurch muessen Plugins nicht kuenstlich lernen, alte Plugin-ID-Pixel zu loeschen.
+
+### Empfohlene Umsetzung
+
+1. Anzeigezeit von 800 ms auf 2000 ms erhoehen.
+2. Nach der Wartezeit den Renderbuffer leeren:
+   - `Screen.clear();`
+3. Danach eine kurze Blank-Refresh-Zeit abwarten, bevor `currentStatus` wieder auf `NONE` gesetzt wird:
+   - z. B. 50-100 ms mit `vTaskDelay(pdMS_TO_TICKS(...))` auf ESP32 bzw. `delay(...)` auf ESP8266.
+   - Der Screen-Timer rendert in dieser Zeit den leeren Buffer mindestens einmal sichtbar auf das Panel.
+4. Erst danach darf das neue Plugin zeichnen:
+   - `currentStatus` bleibt waehrend ID-Anzeige und Blank-Refresh auf `LOADING`.
+   - Danach `currentStatus = NONE` und `activePlugin->setup()`.
+5. Die Zeiten als Konstanten definieren:
+   - `PLUGIN_ID_DISPLAY_MS = 2000`
+   - `PLUGIN_ID_BLANK_REFRESH_MS = 75`
+
+### Moeglicher Zielablauf
+
+```text
+Pluginwechsel
+-> currentStatus = LOADING
+-> alte Plugin-Loop stoppt
+-> Screen.clear()
+-> Plugin-ID zeichnen
+-> 2000 ms warten
+-> Screen.clear()
+-> 75 ms blank refresh warten
+-> currentStatus = NONE
+-> activePlugin->setup()
+-> activePlugin->loop() zeichnet neuen Content
+```
+
+### Risiken / Hinweise
+
+- Der Blank-Refresh sollte bewusst kurz sein. Zu lang wirkt der Pluginwechsel traege, zu kurz kann das Panel je nach Refresh-Timing sichtbar noch nicht komplett leer gewesen sein.
+- Einige Plugins zeichnen eventuell erst zeitverzoegert im `loop()`. Dann sieht man nach dem Blank-Refresh kurz ein leeres Panel. Das ist gewuenscht, weil keine alten Nummernpixel stehen bleiben.
+- Aktuell wird `renderPluginId(...)` bei aktivem Scheduler uebersprungen (`if (Scheduler.isActive) return;`). Wenn Scheduler-Wechsel ebenfalls eine kurze ID-Anzeige bekommen sollen, muss diese Sonderregel separat entschieden werden.
+- Diese Aenderung passt gut zu einem spaeteren generischen `Splash`-/`StatusScreen`-Modul, sollte aber nicht davon abhaengen.
+
+## 4. Fork des GitHub-Projekts
 
 ### Wunsch
 
@@ -117,7 +179,7 @@ remote/
 - Wenn langfristig Pulls vom Originalprojekt eingespielt werden sollen, sollten lokale Aenderungen klein und gut getrennt bleiben.
 - Board-spezifische Aenderungen fuer den ESP32-C3 sollten moeglichst hinter `CONFIG_IDF_TARGET_ESP32C3` bleiben.
 
-## 4. Eigene Plugins ueber GitHub bereitstellen
+## 5. Eigene Plugins ueber GitHub bereitstellen
 
 ### Wunsch
 
@@ -190,7 +252,7 @@ Kurzfristig Variante B, mittelfristig Variante A.
 2. Danach optional einen "RemoteAnimationPlugin" oder "RemotePatternPlugin" einfuehren.
 3. Fuer echte neue C++-Plugins den Fork per GitHub Actions bauen lassen und woechentliche OTA-Firmware-Updates ueber ein Release-Manifest implementieren.
 
-## 5. Remote-Konfigurationsdatei aus dem GitHub-Repo
+## 6. Remote-Konfigurationsdatei aus dem GitHub-Repo
 
 ### Wunsch
 
@@ -236,7 +298,7 @@ Gut machbar. Es gibt bereits `Config::fromJson(...)` und `Config::save()`. Eine 
 - Fuer ein oeffentliches Repo ist `raw.githubusercontent.com` am einfachsten, aber ohne Signatur kann jeder, der das Repo kontrolliert, die Geraetekonfiguration steuern.
 - Konfiguration sollte nie beliebigen Code oder unvalidierte URLs ausfuehren.
 
-## 6. Woechentlicher Check nach Updates
+## 7. Woechentlicher Check nach Updates
 
 ### Wunsch
 
@@ -288,7 +350,7 @@ Machbar. Der bestehende `loop()` prueft bereits periodisch WLAN-Reconnects und S
 }
 ```
 
-## 7. Sicherheits- und Robustheitsbewertung
+## 8. Sicherheits- und Robustheitsbewertung
 
 - Remote-Updates sollten standardmaessig abschaltbar sein.
 - Fuer Firmware-Updates sollte mindestens Version + SHA-256 geprueft werden. Besser waere eine Signatur.
@@ -297,14 +359,15 @@ Machbar. Der bestehende `loop()` prueft bereits periodisch WLAN-Reconnects und S
 - OTA-Firmware sollte nur aus einem kontrollierten Release-Pfad kommen, nicht aus beliebigen URLs in einer ungeschuetzten Config.
 - GitHub API hat Rate Limits. Fuer oeffentliche Daten sind Raw-Dateien einfacher als API-Requests.
 
-## 8. Umsetzungsvorschlag in Phasen
+## 9. Umsetzungsvorschlag in Phasen
 
-### Phase 1: Splashscreens
+### Phase 1: Splashscreens und Plugin-ID-Anzeige
 
 - `Screen.setup()` frueher und genau einmal initialisieren.
 - `Splash`-Modul mit Boot-Bild und WiFi-Icon bauen.
 - Boot-Splash mindestens 5 Sekunden anzeigen.
 - WiFiManager-Portal-Callback nutzt WiFi-Icon.
+- Plugin-ID beim manuellen Wechsel 2 Sekunden anzeigen, danach Blank-Refresh, danach erst Plugin-Content zulassen.
 - Test auf ESP32-C3 mit serieller Ausgabe.
 
 ### Phase 2: Remote-Konfiguration
@@ -380,19 +443,22 @@ Risiken / Hinweise:
 - Wenn das Modul mit 5V versorgt wird, muss geprueft werden, ob `OUT` 3.3V-kompatibel ist. Bei Unsicherheit Pegel messen oder ueber Spannungsteiler/Levelshifter auf den ESP-Eingang fuehren.
 - Der Sensor sollte keine Prioritaet vor Display-Stabilitaet, Splashscreen oder Remote-Konfiguration bekommen.
 
-## 9. Offene Entscheidungen
+## 10. Offene Entscheidungen
 
 - Soll der Boot-Splash ein fest kompiliertes 16x16-Bitmap sein oder aus Remote-Konfiguration/Storage kommen?
 - Soll nach dem Boot das zuletzt gespeicherte Bild wiederhergestellt werden oder immer das persistierte Plugin starten?
+- Soll die Plugin-ID auch bei Scheduler-Wechseln angezeigt werden oder nur bei manueller/API-Auswahl?
+- Soll der Blank-Refresh 50 ms, 75 ms oder 100 ms lang sein? Startwert: 75 ms.
 - Bedeutet "Plugin" fuer den ersten Schritt C++-Firmware-Plugin oder reicht ein herunterladbares Pattern/Animation?
 - Soll der Fork oeffentlich sein? Private GitHub-Repos erhoehen den Aufwand wegen Authentifizierung.
 - Soll Remote-Firmware-Update automatisch installieren oder nur im Web-UI anzeigen und manuell bestaetigt werden?
 - Soll LD2410 `OUT` bei Praesenz als `HIGH` oder invertiert behandelt werden? Das muss am realen Modul gemessen oder geloggt werden.
 - Soll Presence spaeter nur als Status angezeigt werden oder aktiv Display/Plugins/Scheduler steuern?
 
-## 10. Meine Gesamtbewertung
+## 11. Meine Gesamtbewertung
 
 - Splashscreen und WiFi-Icon sind kleine, sinnvolle Aenderungen mit hoher Erfolgswahrscheinlichkeit.
+- Die Plugin-ID-Anzeige sollte zentral im `PluginManager` bereinigt werden: ID 2 Sekunden zeigen, Buffer leeren, kurzen Blank-Refresh abwarten, dann Plugin starten.
 - Remote-Konfiguration ist ebenfalls sinnvoll und baut gut auf dem bestehenden `Config`-System auf.
 - "Neue Plugins herunterladen" sollte nicht als dynamisches C++-Pluginloading geplant werden. Dafuer ist dieses Firmwaremodell nicht ausgelegt.
 - Der robuste Weg ist zweigleisig: einfache Remote-Plugins als Daten/Pattern herunterladen und echte C++-Plugins ueber automatische oder halbautomatische Firmware-OTA-Updates aus dem Fork verteilen.

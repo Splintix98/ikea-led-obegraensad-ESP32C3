@@ -59,8 +59,8 @@
 constexpr uint8_t MAX_BRIGHTNESS = 255;
 constexpr uint16_t TOTAL_PIXELS = ROWS * COLS;
 
-// set your city or coords (https://github.com/chubin/wttr.in)
-#define WEATHER_LOCATION "Hamburg"
+// set your city, postal code or coords (https://github.com/chubin/wttr.in)
+#define WEATHER_LOCATION "31311 Uetze Niedersachsen Deutschland"
 
 // name of WiFi created by the device if no known WiFi is available
 #define WIFI_MANAGER_SSID "IKEA"

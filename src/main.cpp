@@ -176,8 +176,7 @@ void baseSetup()
 #ifdef ENABLE_SERVER
   connectToWiFi();
 
-  // set time server using config values
-  configTzTime(config.getTzInfo().c_str(), config.getNtpServer().c_str());
+  config.applyTimeConfig(true);
 
   initOTA(server);
   initWebsocketServer(server);

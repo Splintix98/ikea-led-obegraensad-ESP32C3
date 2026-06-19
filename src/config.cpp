@@ -1,5 +1,8 @@
 #include "config.h"
 #include <ArduinoJson.h>
+#ifdef ENABLE_SERVER
+#include <time.h>
+#endif
 
 Config config;
 
@@ -132,6 +135,44 @@ bool Config::getAutoStartSchedule() const
 {
   return autoStartSchedule;
 }
+
+#ifdef ENABLE_SERVER
+void Config::applyTimeConfig(bool waitForSync) const
+{
+  static String appliedTzInfo;
+  static String appliedNtpServer;
+
+  appliedTzInfo = getTzInfo();
+  appliedNtpServer = getNtpServer();
+
+  Serial.print("[NTP] Configuring with server: ");
+  Serial.println(appliedNtpServer);
+  configTzTime(appliedTzInfo.c_str(), appliedNtpServer.c_str(), "pool.ntp.org", "time.google.com");
+
+  if (!waitForSync)
+  {
+    return;
+  }
+
+  Serial.print("[NTP] Waiting for sync");
+  struct tm timeinfo;
+  int ntpRetries = 20;
+  while (ntpRetries-- > 0 && !getLocalTime(&timeinfo, 500))
+  {
+    Serial.print(".");
+  }
+  if (ntpRetries > 0)
+  {
+    Serial.println(" OK");
+    Serial.printf("[NTP] Current time: %02d:%02d:%02d\n", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+  }
+  else
+  {
+    Serial.println(" FAILED");
+    Serial.println("[NTP] Will continue retrying in background");
+  }
+}
+#endif
 
 void Config::setWeatherLocation(const String& location)
 {

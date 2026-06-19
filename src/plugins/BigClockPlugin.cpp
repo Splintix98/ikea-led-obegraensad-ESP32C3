@@ -15,12 +15,22 @@ void BigClockPlugin::setup()
   previousHH.clear();
   previousMM.clear();
   previousLeadingZero = false;
+  ntpFailed = false;
 }
 
 void BigClockPlugin::loop()
 {
-  if (getLocalTime(&timeinfo))
+  if (getLocalTime(&timeinfo, 100))
   {
+    if (ntpFailed)
+    {
+      ntpFailed = false;
+      previousHH.clear();
+      previousMM.clear();
+      previousHour = -1;
+      previousMinutes = -1;
+    }
+
     if (previousHour != timeinfo.tm_hour || previousMinutes != timeinfo.tm_min)
     {
       std::vector<int> hh = {(timeinfo.tm_hour - timeinfo.tm_hour % 10) / 10, timeinfo.tm_hour % 10};
@@ -84,6 +94,16 @@ void BigClockPlugin::loop()
       previousMinutes = timeinfo.tm_min;
       previousHour = timeinfo.tm_hour;
       previousLeadingZero = leadingZero;
+    }
+  }
+  else if (!ntpFailed)
+  {
+    ntpFailed = true;
+    Screen.clear();
+    for (int i = 0; i < 8; i++)
+    {
+      Screen.setPixel(4 + i, 4 + i, 1, 15);
+      Screen.setPixel(4 + i, 11 - i, 1, 15);
     }
   }
 }

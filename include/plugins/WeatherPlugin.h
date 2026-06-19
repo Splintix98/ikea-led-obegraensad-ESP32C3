@@ -40,6 +40,7 @@ private:
   std::vector<int> snowCodes = {179, 227, 323, 326, 329, 332, 335, 338, 368, 371, 392, 395, 230, 350};
 
 private:
+  String encodeLocation(const String& location) const;
   void drawWeather();
 
 public:

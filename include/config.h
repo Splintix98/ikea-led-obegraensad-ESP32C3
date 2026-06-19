@@ -44,6 +44,10 @@ public:
   String getTzInfo() const;
   bool getAutoStartSchedule() const;
   bool isInitialized() const { return initialized; }
+
+#ifdef ENABLE_SERVER
+  void applyTimeConfig(bool waitForSync = false) const;
+#endif
   
   // Setters with validation
   void setWeatherLocation(const String& location);

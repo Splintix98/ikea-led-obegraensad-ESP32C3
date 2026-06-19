@@ -10,6 +10,34 @@
 WiFiClient wiFiClient;
 #endif
 
+String WeatherPlugin::encodeLocation(const String& location) const
+{
+  String encoded;
+  encoded.reserve(location.length() * 3);
+
+  for (size_t i = 0; i < location.length(); i++)
+  {
+    char c = location.charAt(i);
+    if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') ||
+        c == '-' || c == '_' || c == '.' || c == '~')
+    {
+      encoded += c;
+    }
+    else if (c == ' ')
+    {
+      encoded += "%20";
+    }
+    else
+    {
+      char hex[4];
+      snprintf(hex, sizeof(hex), "%%%02X", static_cast<unsigned char>(c));
+      encoded += hex;
+    }
+  }
+
+  return encoded;
+}
+
 void WeatherPlugin::setup()
 {
   Screen.clear();
@@ -69,7 +97,7 @@ void WeatherPlugin::update()
   Serial.print("[WeatherPlugin] Fetching weather for configured city: ");
   Serial.println(weatherLocation);
   
-  String weatherApiString = "https://wttr.in/" + weatherLocation + "?format=j2&lang=en";
+  String weatherApiString = "https://wttr.in/" + encodeLocation(weatherLocation) + "?format=j2&lang=en";
   Serial.print("[WeatherPlugin] API request: ");
   Serial.println(weatherApiString);
 
