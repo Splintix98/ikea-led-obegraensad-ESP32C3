@@ -19,7 +19,7 @@ private:
   void next();
   void init();
   void show();
-  uint16_t gol_delay = 150;
+  uint16_t gol_delay = 800;
 
   NonBlockingDelay updateTimer;
   NonBlockingDelay initTimer;

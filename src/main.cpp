@@ -21,27 +21,16 @@
 #include "scheduler.h"
 
 #include "plugins/Blob.h"
-#include "plugins/BreakoutPlugin.h"
-#include "plugins/BubblesPlugin.h"
-#include "plugins/CheckerboardPlugin.h"
-#include "plugins/CirclePlugin.h"
-#include "plugins/CometPlugin.h"
 #include "plugins/DrawPlugin.h"
 #include "plugins/FirefliesPlugin.h"
 #include "plugins/FireworkPlugin.h"
 #include "plugins/GameOfLifePlugin.h"
-#include "plugins/LinesPlugin.h"
 #include "plugins/MatrixRainPlugin.h"
 #include "plugins/MeteorShowerPlugin.h"
 #include "plugins/PongClockPlugin.h"
-#include "plugins/RadarPlugin.h"
-#include "plugins/RainPlugin.h"
-#include "plugins/ScanlinesPlugin.h"
 #include "plugins/SnakePlugin.h"
 #include "plugins/SparkleFieldPlugin.h"
-#include "plugins/SpiralPlugin.h"
 #include "plugins/StarsPlugin.h"
-#include "plugins/TickingClockPlugin.h"
 #include "plugins/WaveBarsPlugin.h"
 #include "plugins/WavePlugin.h"
 
@@ -191,25 +180,15 @@ void baseSetup()
 #endif
 
   pluginManager.addPlugin(new DrawPlugin());
-  pluginManager.addPlugin(new BreakoutPlugin());
   pluginManager.addPlugin(new SnakePlugin());
   pluginManager.addPlugin(new GameOfLifePlugin());
   pluginManager.addPlugin(new StarsPlugin());
-  pluginManager.addPlugin(new LinesPlugin());
-  pluginManager.addPlugin(new CirclePlugin());
-  pluginManager.addPlugin(new RainPlugin());
   pluginManager.addPlugin(new MatrixRainPlugin());
   pluginManager.addPlugin(new FireworkPlugin());
   pluginManager.addPlugin(new BlobPlugin());
-  pluginManager.addPlugin(new SpiralPlugin());
   pluginManager.addPlugin(new WavePlugin());
-  pluginManager.addPlugin(new CheckerboardPlugin());
-  pluginManager.addPlugin(new RadarPlugin());
-  pluginManager.addPlugin(new BubblesPlugin());
-  pluginManager.addPlugin(new CometPlugin());
   pluginManager.addPlugin(new FirefliesPlugin());
   pluginManager.addPlugin(new MeteorShowerPlugin());
-  pluginManager.addPlugin(new ScanlinesPlugin());
   pluginManager.addPlugin(new SparkleFieldPlugin());
   pluginManager.addPlugin(new WaveBarsPlugin());
 
@@ -217,7 +196,6 @@ void baseSetup()
   pluginManager.addPlugin(new BigClockPlugin());
   pluginManager.addPlugin(new ClockPlugin());
   pluginManager.addPlugin(new PongClockPlugin());
-  pluginManager.addPlugin(new TickingClockPlugin());
   pluginManager.addPlugin(new WeatherPlugin());
   pluginManager.addPlugin(new AnimationPlugin());
 #if ENABLE_DDP_PLUGIN
