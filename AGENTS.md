@@ -132,7 +132,8 @@ In `include/constants.h` current C3 pins:
 ```
 
 - `PIN_PRESENCE` currently disabled (`-1`) even though LD2410 OUT wiring target is GPIO10.
-- When implementing presence, set C3 `PIN_PRESENCE 10`.
+- Presence plan was explicitly abandoned for now after debug attempt; keep `PIN_PRESENCE -1` unless user reopens it.
+- If implementing presence again, set C3 `PIN_PRESENCE 10`.
 - `src/main.cpp` already guards presence init with `#if PIN_PRESENCE >= 0`.
 - If LD2410 OUT unstable, test `INPUT_PULLDOWN`, but do not assume; first log/meter real OUT behavior.
 - Weather default currently user-specific: `WEATHER_LOCATION "31311 Uetze Niedersachsen Deutschland"`.
@@ -149,6 +150,7 @@ In `src/screen.cpp`:
 - Tests 1 MHz / 4 MHz were not useful; low SPI can break/stress webserver because timer interval 200 us and SPI transfer of 32 bytes gets too slow.
 - Display refresh writes 32 bytes every 200 us timer tick.
 - ESP32-C3 is single-core; WiFi/server and display timing can interact.
+- Splashscreen learning: visible panel refresh before/during WiFiManager can break ESP32-C3 boot/WiFi. Safe current compromise is splash after WiFi/server/NTP init and before plugin init. Do not move `Screen.setup()` or bright panel refresh before WiFi unless explicitly reworking display timing.
 
 ## Debug/test mode
 
@@ -297,6 +299,15 @@ corepack pnpm run build
 - If changing weather location and old Preferences exist, set via web config or reset; firmware default alone may not apply.
 - Avoid pulling NemoN weather rewrite unless explicitly wanted; it changes provider/model and adds much larger diff.
 
+## Clock + Weather combo plugin notes
+
+- User wants a plugin alternating Clock and Weather every 5 s; fade can come later.
+- Failed attempt: `ClockWeatherPlugin` held internal `ClockPlugin clockPlugin; WeatherPlugin weatherPlugin;`. It compiled but device did not boot reliably after flashing.
+- Likely cause: extra full `WeatherPlugin` instance (`HTTPClient`, `WiFiClientSecure`, vectors/cache state) adds risky heap/RAM/init pressure on ESP32-C3.
+- Do not implement combo by nesting existing plugin objects or running two plugins in parallel; plugins draw directly into global `Screen` buffer and there is no compositor/offscreen plugin buffer.
+- Recommended future implementation: lightweight native `ClockWeatherPlugin` with copied/simplified clock draw logic and simple weather cache fields (`hasWeather`, `lastWeatherUpdate`, `temperature`, `weatherIcon`, `iconY`, `tempY`), HTTP max every 30 min.
+- For later fade, use temporary brightness steps with `Screen.setBrightness(..., false)` and restore previous brightness; never persist brightness during fade.
+
 ## Current generated web UI state
 
 - If `frontend/src/app.tsx` changes, generated `src/webgui.cpp` usually changes too.
@@ -338,15 +349,15 @@ Prior suggested order if changing board:
 
 ## Roadmap high-level
 
-- Splashscreen during boot, at least 5 s.
-- WiFiManager icon while config portal active.
+- Splashscreen after WiFi/server/NTP init and before plugin init, at least 5 s. True pre-WiFi splash is unsafe with current ESP32-C3 display timing.
+- WiFiManager icon while config portal active was planned, but avoid panel refresh during WiFiManager unless display timing is redesigned.
 - Plugin-ID display behavior done in code and `Plan.md`.
 - Fork item marked done in `Plan.md`; remote config/remote pattern ideas still planned.
-- LD2410 OUT presence low priority.
+- LD2410 OUT presence abandoned for now.
 
 ## Presence implementation notes
 
-Low priority. For future implementation:
+Abandoned for now. Only resume if user explicitly reopens it. For future implementation:
 
 - Use only digital `OUT`, no UART.
 - Set `PIN_PRESENCE 10` for C3.

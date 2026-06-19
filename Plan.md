@@ -447,7 +447,73 @@ Risiken / Hinweise:
 - Wenn das Modul mit 5V versorgt wird, muss geprueft werden, ob `OUT` 3.3V-kompatibel ist. Bei Unsicherheit Pegel messen oder ueber Spannungsteiler/Levelshifter auf den ESP-Eingang fuehren.
 - Der Sensor sollte keine Prioritaet vor Display-Stabilitaet, Splashscreen oder Remote-Konfiguration bekommen.
 
-## 10. Offene Entscheidungen
+## 10. Clock + Weather Kombi-Plugin
+
+### Wunsch
+
+Ein neues Plugin soll Wetter und `Clock` kombinieren. Alle 5 Sekunden soll zwischen beiden Anzeigen gewechselt werden. Spaeter ist ein kurzer Fade per Helligkeit gewuenscht. Wichtig: Wetter soll nicht bei jedem Wechsel neu geladen werden, sondern gecached bleiben.
+
+### Learning aus erstem Umsetzungsversuch
+
+Ein erster Testansatz hat ein neues `ClockWeatherPlugin` gebaut, das intern je eine Instanz von `ClockPlugin` und `WeatherPlugin` gehalten hat:
+
+```cpp
+ClockPlugin clockPlugin;
+WeatherPlugin weatherPlugin;
+```
+
+Der Code hat kompiliert, das Geraet startete nach dem Flash aber nicht mehr zuverlaessig. Die Aenderung wurde wieder entfernt.
+
+Wahrscheinlichste Ursache: Das Kombi-Plugin erzeugte zusaetzlich zum normal registrierten `WeatherPlugin` eine zweite komplette Wetter-Plugin-Instanz mit `HTTPClient`, `WiFiClientSecure`, Vektoren und Cache-State. Auf dem ESP32-C3 ist dieser Ansatz fuer den Bootpfad und Heap/RAM zu riskant. Ein erfolgreicher Build reicht hier nicht als Stabilitaetsnachweis.
+
+### Bewertung
+
+Machbar, aber nicht durch naives Verschachteln vorhandener Plugins. Die bestehenden Plugins schreiben direkt in den globalen `Screen`-Buffer. Es gibt keine Offscreen-Renderbuffer pro Plugin und keinen Compositor. Deshalb ist echtes paralleles "Plugins laufen im Hintergrund weiter" aktuell nicht sauber in die Architektur integriert.
+
+### Empfohlene robuste Umsetzung
+
+Neues natives Plugin bauen, aber leichtgewichtig:
+
+1. Dateien:
+   - `include/plugins/ClockWeatherPlugin.h`
+   - `src/plugins/ClockWeatherPlugin.cpp`
+2. Keine internen `ClockPlugin`-/`WeatherPlugin`-Objekte halten.
+3. Uhr direkt im Kombi-Plugin zeichnen:
+   - vorhandene Clock-Logik kopieren/vereinfachen
+   - `getLocalTime(&timeinfo, 100)` verwenden
+   - lokale `previousHour`/`previousMinutes`-Caches nutzen
+4. Wetter direkt im Kombi-Plugin cachen:
+   - nur einfache Felder speichern: `hasWeather`, `lastWeatherUpdate`, `temperature`, `weatherIcon`, `iconY`, `tempY`
+   - Wetter maximal alle 30 Minuten per HTTP aktualisieren
+   - Anzeige aus `WeatherPlugin::drawWeather()` nachbauen oder eine kleine gemeinsame Hilfsfunktion extrahieren
+5. Umschalten:
+   - `SWITCH_INTERVAL_MS = 5000`
+   - beim Wechsel `Screen.clear()` und aktuelle Ansicht komplett neu zeichnen
+   - kein `pluginManager.setActivePlugin(...)` und kein Unter-Plugin-`setup()` aufrufen
+6. Fehleranzeige:
+   - wenn NTP fehlt: kleines X wie Clock
+   - wenn Wetter noch nicht geladen oder HTTP fehlschlaegt: kleines Wetter-Fehlersymbol, aber nicht blockierend endlos warten
+
+### Spaeterer Fade
+
+Ein einfacher Fade kann spaeter ohne kompletten Offscreen-Compositor ueber globale Helligkeit getestet werden:
+
+```text
+aktuelles Bild sichtbar
+-> Helligkeit in wenigen Schritten runter
+-> Screen.clear(), neue Ansicht zeichnen
+-> Helligkeit wieder hoch
+```
+
+Risiko: `Screen.setBrightness(...)` schreibt optional in Preferences. Fuer Fade muss `shouldStore=false` verwendet werden, sonst wuerde Flash unnoetig belastet. Der alte Helligkeitswert muss danach wiederhergestellt werden.
+
+### Nicht empfohlene Umsetzung
+
+- Keine zweite `WeatherPlugin`-Instanz im Kombi-Plugin halten.
+- Nicht zwei Plugins parallel laufen lassen, solange alle direkt in denselben `Screen`-Buffer zeichnen.
+- Keine HTTP-Abfrage bei jedem 5-Sekunden-Wechsel.
+
+## 11. Offene Entscheidungen
 
 - Soll der Boot-Splash ein fest kompiliertes 16x16-Bitmap sein oder aus Remote-Konfiguration/Storage kommen?
 - Soll nach dem Boot das zuletzt gespeicherte Bild wiederhergestellt werden oder immer das persistierte Plugin starten?
@@ -456,8 +522,10 @@ Risiken / Hinweise:
 - Soll Remote-Firmware-Update automatisch installieren oder nur im Web-UI anzeigen und manuell bestaetigt werden?
 - Soll LD2410 `OUT` bei Praesenz als `HIGH` oder invertiert behandelt werden? Das muss am realen Modul gemessen oder geloggt werden.
 - Soll Presence spaeter nur als Status angezeigt werden oder aktiv Display/Plugins/Scheduler steuern?
+- Soll `Clock + Weather` das normale `Clock`/`Weather` ersetzen oder zusaetzlich als eigenes Plugin in der Liste bleiben?
+- Soll der erste stabile `Clock + Weather`-Stand ohne Fade ausgeliefert werden und Fade erst danach folgen?
 
-## 11. Meine Gesamtbewertung
+## 12. Meine Gesamtbewertung
 
 - Splashscreen und WiFi-Icon sind kleine, sinnvolle Aenderungen mit hoher Erfolgswahrscheinlichkeit.
 - Die Plugin-ID-Anzeige sollte zentral im `PluginManager` bereinigt werden: ID 2 Sekunden zeigen, Buffer leeren, kurzen Blank-Refresh abwarten, dann Plugin starten.
@@ -465,3 +533,4 @@ Risiken / Hinweise:
 - "Neue Plugins herunterladen" sollte nicht als dynamisches C++-Pluginloading geplant werden. Dafuer ist dieses Firmwaremodell nicht ausgelegt.
 - Der robuste Weg ist zweigleisig: einfache Remote-Plugins als Daten/Pattern herunterladen und echte C++-Plugins ueber automatische oder halbautomatische Firmware-OTA-Updates aus dem Fork verteilen.
 - LD2410 ueber `OUT` ist als niedrige Prioritaet einfach integrierbar, sollte aber erst nach stabiler Display-Hardware und Grundfirmware umgesetzt werden.
+- `Clock + Weather` ist sinnvoll, sollte aber als eigenes leichtgewichtiges Plugin implementiert werden. Vorhandene Plugin-Objekte im Kombi-Plugin zu verschachteln ist auf dem ESP32-C3 zu riskant.
