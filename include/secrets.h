@@ -11,4 +11,4 @@
 
 // If you would like to perform OTA updates, you need to define the credentials here
 #define OTA_USERNAME "admin"
-#define OTA_PASSWORD "ikea-led-wall"
+#define OTA_PASSWORD "JonasSUX!"
