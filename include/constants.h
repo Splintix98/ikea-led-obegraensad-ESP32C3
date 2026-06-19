@@ -8,6 +8,10 @@
 // disable if you do not want to have online functionality
 #define ENABLE_SERVER
 
+// Network pixel input plugins. Disabled by default to keep the plugin list focused.
+#define ENABLE_DDP_PLUGIN 0
+#define ENABLE_ARTNET_PLUGIN 0
+
 #if defined(CONFIG_IDF_TARGET_ESP32C3)
 
 #define PIN_ENABLE 0

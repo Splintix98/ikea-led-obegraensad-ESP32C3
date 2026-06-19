@@ -20,14 +20,12 @@
 #include "config.h"
 #include "scheduler.h"
 
-#include "plugins/ArtNet.h"
 #include "plugins/Blob.h"
 #include "plugins/BreakoutPlugin.h"
 #include "plugins/BubblesPlugin.h"
 #include "plugins/CheckerboardPlugin.h"
 #include "plugins/CirclePlugin.h"
 #include "plugins/CometPlugin.h"
-#include "plugins/DDPPlugin.h"
 #include "plugins/DrawPlugin.h"
 #include "plugins/FirefliesPlugin.h"
 #include "plugins/FireworkPlugin.h"
@@ -46,6 +44,14 @@
 #include "plugins/TickingClockPlugin.h"
 #include "plugins/WaveBarsPlugin.h"
 #include "plugins/WavePlugin.h"
+
+#if ENABLE_ARTNET_PLUGIN
+#include "plugins/ArtNet.h"
+#endif
+
+#if ENABLE_DDP_PLUGIN
+#include "plugins/DDPPlugin.h"
+#endif
 
 #ifdef ENABLE_SERVER
 #include "plugins/AnimationPlugin.h"
@@ -213,8 +219,12 @@ void baseSetup()
   pluginManager.addPlugin(new TickingClockPlugin());
   pluginManager.addPlugin(new WeatherPlugin());
   pluginManager.addPlugin(new AnimationPlugin());
+#if ENABLE_DDP_PLUGIN
   pluginManager.addPlugin(new DDPPlugin());
+#endif
+#if ENABLE_ARTNET_PLUGIN
   pluginManager.addPlugin(new ArtNetPlugin());
+#endif
 #endif
 
   Screen.clear();
