@@ -65,6 +65,7 @@
 #include "ota.h"
 #include "screen.h"
 #include "secrets.h"
+#include "splash.h"
 #include "websocket.h"
 
 BfButton btn(BfButton::STANDALONE_DIGITAL, PIN_BUTTON, true, LOW);
@@ -227,6 +228,7 @@ void baseSetup()
 #endif
 #endif
 
+  Splash::waitForBootMinimum();
   Screen.clear();
   pluginManager.init();
   Scheduler.init();
@@ -303,7 +305,6 @@ TaskHandle_t screenDrawingTaskHandle = NULL;
 
 void screenDrawingTask(void *parameter)
 {
-  Screen.setup();
   for (;;)
   {
     pluginManager.runActivePlugin();
@@ -313,6 +314,8 @@ void screenDrawingTask(void *parameter)
 
 void setup()
 {
+  Screen.setup();
+  Splash::showBootImage();
   baseSetup();
   xTaskCreatePinnedToCore(screenDrawingTask,
                           "screenDrawingTask",
