@@ -6,7 +6,7 @@
 
 namespace
 {
-const uint8_t image16x16[TOTAL_PIXELS] PROGMEM = {
+const uint8_t bootImage16x16[TOTAL_PIXELS] PROGMEM = {
     0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0,
@@ -24,8 +24,36 @@ const uint8_t image16x16[TOTAL_PIXELS] PROGMEM = {
     0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
+const uint8_t wifiPortalImage16x16[TOTAL_PIXELS] PROGMEM = {
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0,
+    0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+    0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,
+    0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+    0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
 unsigned long bootSplashStartedAt = 0;
 bool bootSplashShown = false;
+
+void showImage(const uint8_t *image)
+{
+  Screen.clear();
+
+  for (uint16_t index = 0; index < TOTAL_PIXELS; index++)
+  {
+    Screen.setPixelAtIndex(index, pgm_read_byte(&image[index]), MAX_BRIGHTNESS);
+  }
+}
 
 void waitStep()
 {
@@ -44,13 +72,12 @@ void showBootImage()
 {
   bootSplashStartedAt = millis();
   bootSplashShown = true;
-  currentStatus = LOADING;
-  Screen.clear();
+  showImage(bootImage16x16);
+}
 
-  for (uint16_t index = 0; index < TOTAL_PIXELS; index++)
-  {
-    Screen.setPixelAtIndex(index, pgm_read_byte(&image16x16[index]), MAX_BRIGHTNESS);
-  }
+void showWifiPortal()
+{
+  showImage(wifiPortalImage16x16);
 }
 
 void waitForBootMinimum()

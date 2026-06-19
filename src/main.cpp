@@ -206,6 +206,7 @@ void baseSetup()
 #endif
 #endif
 
+  Splash::showBootImage();
   Splash::waitForBootMinimum();
   Screen.clear();
   pluginManager.init();
@@ -283,6 +284,7 @@ TaskHandle_t screenDrawingTaskHandle = NULL;
 
 void screenDrawingTask(void *parameter)
 {
+  Screen.setup();
   for (;;)
   {
     pluginManager.runActivePlugin();
@@ -292,9 +294,6 @@ void screenDrawingTask(void *parameter)
 
 void setup()
 {
-  Screen.setup();
-  Splash::showBootImage();
-  baseSetup();
   xTaskCreatePinnedToCore(screenDrawingTask,
                           "screenDrawingTask",
                           10000,
@@ -302,6 +301,7 @@ void setup()
                           1,
                           &screenDrawingTaskHandle,
                           0);
+  baseSetup();
 }
 #endif
 #ifdef ESP8266
