@@ -75,6 +75,8 @@ Dieser Callback signalisiert, dass der Config-Portal-Webserver gestartet wurde. 
 
 ## 3. Plugin-Nummer nur temporaer anzeigen
 
+Status: erledigt.
+
 ### Wunsch
 
 Beim Auswaehlen eines Plugins soll die Plugin-Nummer fuer 2 Sekunden angezeigt werden. Danach soll das Panel einmal komplett blank refresht werden. Erst danach soll der Content des gewaehlten Plugins sichtbar werden.
@@ -136,6 +138,8 @@ Pluginwechsel
 - Diese Aenderung passt gut zu einem spaeteren generischen `Splash`-/`StatusScreen`-Modul, sollte aber nicht davon abhaengen.
 
 ## 4. Fork des GitHub-Projekts
+
+Status: erledigt.
 
 ### Wunsch
 
@@ -367,7 +371,7 @@ Machbar. Der bestehende `loop()` prueft bereits periodisch WLAN-Reconnects und S
 - `Splash`-Modul mit Boot-Bild und WiFi-Icon bauen.
 - Boot-Splash mindestens 5 Sekunden anzeigen.
 - WiFiManager-Portal-Callback nutzt WiFi-Icon.
-- Plugin-ID beim manuellen Wechsel 2 Sekunden anzeigen, danach Blank-Refresh, danach erst Plugin-Content zulassen.
+- Erledigt: Plugin-ID beim manuellen Wechsel 2 Sekunden anzeigen, danach Blank-Refresh, danach erst Plugin-Content zulassen.
 - Test auf ESP32-C3 mit serieller Ausgabe.
 
 ### Phase 2: Remote-Konfiguration
@@ -447,10 +451,8 @@ Risiken / Hinweise:
 
 - Soll der Boot-Splash ein fest kompiliertes 16x16-Bitmap sein oder aus Remote-Konfiguration/Storage kommen?
 - Soll nach dem Boot das zuletzt gespeicherte Bild wiederhergestellt werden oder immer das persistierte Plugin starten?
-- Soll die Plugin-ID auch bei Scheduler-Wechseln angezeigt werden oder nur bei manueller/API-Auswahl?
-- Soll der Blank-Refresh 50 ms, 75 ms oder 100 ms lang sein? Startwert: 75 ms.
+- Erledigt fuer manuelle/API-Auswahl: Plugin-ID wird 2 Sekunden angezeigt, danach folgt ein 75-ms-Blank-Refresh.
 - Bedeutet "Plugin" fuer den ersten Schritt C++-Firmware-Plugin oder reicht ein herunterladbares Pattern/Animation?
-- Soll der Fork oeffentlich sein? Private GitHub-Repos erhoehen den Aufwand wegen Authentifizierung.
 - Soll Remote-Firmware-Update automatisch installieren oder nur im Web-UI anzeigen und manuell bestaetigt werden?
 - Soll LD2410 `OUT` bei Praesenz als `HIGH` oder invertiert behandelt werden? Das muss am realen Modul gemessen oder geloggt werden.
 - Soll Presence spaeter nur als Status angezeigt werden oder aktiv Display/Plugins/Scheduler steuern?

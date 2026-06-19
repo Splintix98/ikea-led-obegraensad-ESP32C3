@@ -8,11 +8,15 @@ import { useStore } from "./contexts/store";
 import { useToast } from "./contexts/toast";
 import { loadImageAndGetDataArray, rotateArray } from "./helpers";
 
+const DRAW_PLUGIN_ROTATION_OFFSET = 2;
+
 export const App: Component = () => {
   const [store, actions] = useStore();
   const { toast } = useToast();
 
-  const rotatedMatrix = createMemo(() => rotateArray(store.indexMatrix, store.rotation));
+  const drawMatrix = createMemo(() =>
+    rotateArray(store.indexMatrix, store.rotation + DRAW_PLUGIN_ROTATION_OFFSET),
+  );
 
   const wsMessage = (
     event:
@@ -124,7 +128,7 @@ export const App: Component = () => {
           <LedMatrix
             disabled={store.plugin !== 1}
             data={store.leds || []}
-            indexData={rotatedMatrix()}
+            indexData={drawMatrix()}
             brightness={store.brightness ?? 255}
             onSetLed={(data) => {
               wsMessage("led", data);
