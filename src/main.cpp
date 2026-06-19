@@ -161,6 +161,9 @@ void baseSetup()
   pinMode(PIN_CLOCK, OUTPUT);
   pinMode(PIN_DATA, OUTPUT);
   pinMode(PIN_ENABLE, OUTPUT);
+#if PIN_PRESENCE >= 0
+  pinMode(PIN_PRESENCE, INPUT);
+#endif
 
 #if !defined(ESP32) && !defined(ESP8266)
   Screen.setup();
@@ -221,6 +224,70 @@ void baseSetup()
 
   btn.onPress(pressHandler).onDoublePress(pressHandler).onPressFor(pressHandler, 1000);
 }
+
+#if PANEL_TEST_MODE
+void fillPanel(bool enabled)
+{
+  for (int index = 0; index < TOTAL_PIXELS; index++)
+  {
+    Screen.setPixelAtIndex(index, enabled ? 1 : 0, MAX_BRIGHTNESS);
+  }
+}
+
+void drawSnake(uint16_t headIndex)
+{
+  Screen.clear();
+
+  for (uint8_t segment = 0; segment < 5; segment++)
+  {
+    uint16_t index = (headIndex + TOTAL_PIXELS - segment) % TOTAL_PIXELS;
+    Screen.setPixelAtIndex(index, 1, MAX_BRIGHTNESS);
+  }
+}
+
+void setup()
+{
+  Serial.begin(115200);
+
+  pinMode(PIN_LATCH, OUTPUT);
+  pinMode(PIN_CLOCK, OUTPUT);
+  pinMode(PIN_DATA, OUTPUT);
+  pinMode(PIN_ENABLE, OUTPUT);
+#if PIN_PRESENCE >= 0
+  pinMode(PIN_PRESENCE, INPUT);
+#endif
+
+  Screen.setup();
+  Screen.setBrightness(MAX_BRIGHTNESS, false);
+  Screen.setCurrentRotation(0, false);
+  Screen.clear();
+
+  Serial.println("Panel test mode active");
+}
+
+void loop()
+{
+  Serial.println("Panel test: full-panel blink");
+  for (uint8_t flash = 0; flash < 5; flash++)
+  {
+    fillPanel(true);
+    delay(500);
+    fillPanel(false);
+    delay(500);
+  }
+
+  Serial.println("Panel test: 5-pixel snake");
+  for (uint16_t index = 0; index < TOTAL_PIXELS; index++)
+  {
+    drawSnake(index);
+    delay(75);
+  }
+
+  Screen.clear();
+  delay(500);
+}
+
+#else
 
 #ifdef ESP32
 TaskHandle_t screenDrawingTaskHandle = NULL;
@@ -325,3 +392,4 @@ void loop()
   delay(1);
 #endif
 }
+#endif

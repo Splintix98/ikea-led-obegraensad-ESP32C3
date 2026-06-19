@@ -6,6 +6,8 @@
 #define TIMER_INTERVAL_US 200
 #define GRAY_LEVELS 64 // must be a power of two
 
+#define SCREEN_SPI_FREQUENCY 10000000
+
 using namespace std;
 
 uint8_t Screen_::getCurrentBrightness() const
@@ -134,7 +136,7 @@ void Screen_::setup()
 
   SPI.pins(PIN_CLOCK, 12, PIN_DATA, 15); // SCLK, MISO, MOSI, SS);
   SPI.begin();
-  SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0));
+  SPI.beginTransaction(SPISettings(SCREEN_SPI_FREQUENCY, MSBFIRST, SPI_MODE0));
 
   timer1_attachInterrupt(&onScreenTimer);
   timer1_enable(TIM_DIV256, TIM_EDGE, TIM_SINGLE);
@@ -149,7 +151,7 @@ void Screen_::setup()
   digitalWrite(PIN_ENABLE, LOW);
 
   SPI.begin(PIN_CLOCK, -1, PIN_DATA, -1); // SCLK, MISO, MOSI, SS (-1 for unused pins)
-  SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0));
+  SPI.beginTransaction(SPISettings(SCREEN_SPI_FREQUENCY, MSBFIRST, SPI_MODE0));
 
   hw_timer_t *Screen_timer = timerBegin(1000000);
   timerAttachInterrupt(Screen_timer, &onScreenTimer);

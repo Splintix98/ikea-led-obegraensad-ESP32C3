@@ -2,23 +2,41 @@
 
 #include <Arduino.h>
 
+// Set to 1 to run a barebones panel hardware test without WiFi, webserver, plugins, or button handling.
+#define PANEL_TEST_MODE 0
+
 // disable if you do not want to have online functionality
 #define ENABLE_SERVER
 
-#ifdef ESP32
+#if defined(CONFIG_IDF_TARGET_ESP32C3)
+
+#define PIN_ENABLE 0
+#define PIN_DATA   6
+#define PIN_CLOCK  4
+#define PIN_LATCH  7
+#define PIN_BUTTON 5
+#define PIN_PRESENCE -1
+
+#elif defined(ESP32)
+
 #define PIN_ENABLE 26
-#define PIN_DATA 27
-#define PIN_CLOCK 14
-#define PIN_LATCH 12
+#define PIN_DATA   27
+#define PIN_CLOCK  14
+#define PIN_LATCH  12
 #define PIN_BUTTON 16
+
+#elif defined(ESP8266)
+
+#define PIN_ENABLE 16
+#define PIN_DATA   13
+#define PIN_CLOCK  14
+#define PIN_LATCH  0
+#define PIN_BUTTON 2
+
 #endif
 
-#ifdef ESP8266
-#define PIN_ENABLE 16
-#define PIN_DATA 13
-#define PIN_CLOCK 14
-#define PIN_LATCH 0
-#define PIN_BUTTON 2
+#ifndef PIN_PRESENCE
+#define PIN_PRESENCE -1
 #endif
 
 // disable if you do not want to use the internal storage
